@@ -1,0 +1,28 @@
+{
+  "name": "kantorku-ai",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.25.0",
+  "scripts": {
+    "dev": "concurrently \"pnpm --filter @kantorku/api dev\" \"pnpm --filter @kantorku/web dev\"",
+    "dev:api": "pnpm --filter @kantorku/api dev",
+    "dev:web": "pnpm --filter @kantorku/web dev",
+    "build": "pnpm -r build",
+    "build:api": "pnpm --filter @kantorku/api build",
+    "build:web": "pnpm --filter @kantorku/web build",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "test:coverage": "pnpm -r test:coverage",
+    "db:generate": "pnpm --filter @kantorku/api db:generate",
+    "db:migrate": "pnpm --filter @kantorku/api db:migrate",
+    "db:seed": "pnpm --filter @kantorku/api db:seed"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "typescript": "^5.8.3"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

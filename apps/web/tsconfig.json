@@ -1,0 +1,20 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "composite": true,
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "allowSyntheticDefaultImports": true,
+    "jsx": "preserve",
+    "types": ["node", "vitest/globals", "nuxt/schema"],
+    "baseUrl": ".",
+    "paths": {
+      "~/*": ["./*"],
+      "@/*": ["./*"],
+      "~~/*": ["./*"],
+      "@@/*": ["./*"]
+    }
+  },
+  "include": ["**/*.ts", "**/*.vue", "nuxt.config.ts", ".nuxt/**/*.ts", ".nuxt/*.d.ts"],
+  "exclude": ["node_modules", ".nuxt/dist", ".output", "dist"]
+}
