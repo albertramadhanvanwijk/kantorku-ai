@@ -1,4 +1,5 @@
 import type { NuxtConfig } from 'nuxt/config';
+import tailwindcss from '@tailwindcss/vite';
 
 const config: NuxtConfig = {
   compatibilityDate: '2025-01-01',
@@ -18,6 +19,12 @@ const config: NuxtConfig = {
     },
   },
 
+  css: ['~/assets/css/main.css'],
+
+  vite: {
+    plugins: [tailwindcss()],
+  },
+
   runtimeConfig: {
     public: {
       apiBase: process.env.API_URL || 'http://localhost:4000',
@@ -35,6 +42,11 @@ const config: NuxtConfig = {
         { charset: 'utf-8' },
         { name: 'viewport', content: 'width=device-width, initial-scale=1' },
         { name: 'description', content: 'KantorKu-AI — Personal AI Office for trading creators' },
+      ],
+      link: [
+        { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
+        { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
+        { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap' },
       ],
     },
   },
