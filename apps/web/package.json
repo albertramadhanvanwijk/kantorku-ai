@@ -14,7 +14,12 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
+    "@tailwindcss/vite": "^4.3.3",
+    "autoprefixer": "^10.6.1",
+    "lucide-vue-next": "^1.0.0",
     "nuxt": "^3.15.4",
+    "postcss": "^8.5.28",
+    "tailwindcss": "^4.3.3",
     "vue": "^3.5.13"
   },
   "devDependencies": {
@@ -24,6 +29,7 @@
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.71.0",
     "vitest": "^3.2.4",
+    "vue-router": "^5.3.1",
     "vue-tsc": "^3.3.12"
   }
 }

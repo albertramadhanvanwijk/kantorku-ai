@@ -6,13 +6,15 @@ async function main() {
   const app = await buildApp();
 
   const port = config.PORT;
-  const host = config.HOST;
+  const host = '127.0.0.1';
 
   try {
-    await app.listen({ port, host });
-    app.log.info(`API listening on http://${host}:${port}`);
+    const address = await app.listen({ port, host });
+    app.log.info(`API listening on ${address}`);
+    console.log('Server successfully bound to:', address);
   } catch (err) {
     app.log.error(err);
+    console.error('Listen error:', err);
     process.exit(1);
   }
 

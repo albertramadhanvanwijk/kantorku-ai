@@ -1,13 +1,13 @@
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
-  { ignores: ['.nuxt/**', '.output/**', 'dist/**', 'node_modules/**', 'coverage/**', 'eslint.config.js'] },
+  { ignores: ['.nuxt/**', '.output/**', 'dist/**', 'node_modules/**', 'coverage/**', 'eslint.config.js', 'postcss.config.js'] },
   ...tseslint.configs.recommended,
   {
     languageOptions: {
       parserOptions: {
         projectService: true,
-        allowDefaultProject: ['*.ts', '*.vue', '*.js'],
+        allowDefaultProject: ['*.ts', '*.vue', '*.js', 'postcss.config.js'],
       },
     },
     rules: {
