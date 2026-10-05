@@ -11,14 +11,20 @@ import { healthRoutes } from './routes/health.js';
 import { authRoutes } from './modules/auth/auth.routes.js';
 
 export async function buildApp(opts: { logger?: ReturnType<typeof createLogger> | false } = {}) {
-  const config = loadConfig();
-  const logger = opts.logger === false ? false : (opts.logger ?? createLogger(config.LOG_LEVEL));
-
-  const app = Fastify({
-    logger,
-    trustProxy: true,
-    genReqId: () => crypto.randomUUID(),
-  });
+    const config = loadConfig();
+    
+    // Pass logger config directly to Fastify instead of pre-creating pino instance
+    const loggerConfig = {
+      level: config.LOG_LEVEL,
+      base: { service: 'kantorku-api' },
+    };
+    const logger = opts.logger === false ? false : (opts.logger ?? loggerConfig);
+    
+    const app = Fastify({
+        logger,
+        trustProxy: true,
+        genReqId: () => crypto.randomUUID(),
+    });
 
   // Decorate config + infra for route handlers
   app.decorate('config', config);
@@ -27,7 +33,9 @@ export async function buildApp(opts: { logger?: ReturnType<typeof createLogger> 
 
   // Redis is optional in Phase 0 — best-effort connect, do not crash if unavailable
   let redis: any = null;
-  const log = logger || { warn: () => {}, info: () => {}, error: () => {} };
+  // Create a pino instance for internal logging (Redis, etc.)
+  const internalLogger = createLogger(config.LOG_LEVEL);
+  const log: any = internalLogger;
   try {
     const { createClient } = await import('redis');
     const client = createClient({ url: config.REDIS_URL });
