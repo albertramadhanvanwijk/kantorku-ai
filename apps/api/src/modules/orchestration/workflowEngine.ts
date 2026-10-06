@@ -118,10 +118,18 @@ export class WorkflowEngine {
 
   // ── resolveInput (recursive InputMapping) ─────────────────────────────────
 
+  /**
+   * Resolve an InputMapping to a concrete value.
+   * @param mapping The input mapping to resolve
+   * @param workflowInput The original workflow input
+   * @param state Current execution state (keyed by outputKey)
+   * @param stepIdToOutputKey Map from stepId to outputKey for fromStepOutput lookups
+   */
   resolveInput(
     mapping: InputMapping,
     workflowInput: unknown,
     state: Record<string, unknown>,
+    stepIdToOutputKey?: Map<string, string>,
   ): unknown {
     switch (mapping.type) {
       case 'static':
@@ -129,14 +137,17 @@ export class WorkflowEngine {
       case 'fromWorkflowInput':
         return getByPath(workflowInput, mapping.path);
       case 'fromStepOutput': {
-        const stepOutput = state[mapping.stepId];
+        // state is keyed by outputKey, but mapping references stepId
+        // Use stepIdToOutputKey map to translate, fallback to stepId for backwards compat
+        const outputKey = stepIdToOutputKey?.get(mapping.stepId) ?? mapping.stepId;
+        const stepOutput = state[outputKey];
         if (mapping.path === '' || mapping.path === '.') return stepOutput;
         return getByPath(stepOutput, mapping.path);
       }
       case 'merge': {
         const result: Record<string, unknown> = {};
         for (const [key, sub] of Object.entries(mapping.mappings)) {
-          result[key] = this.resolveInput(sub as InputMapping, workflowInput, state);
+          result[key] = this.resolveInput(sub as InputMapping, workflowInput, state, stepIdToOutputKey);
         }
         return result;
       }
@@ -208,6 +219,10 @@ export class WorkflowEngine {
     const stepById = new Map<string, WorkflowStep>();
     for (const s of workflow.steps) stepById.set(s.id, s);
 
+    // Build stepId -> outputKey map for fromStepOutput resolution
+    const stepIdToOutputKey = new Map<string, string>();
+    for (const s of workflow.steps) stepIdToOutputKey.set(s.id, s.outputKey);
+
     // Build predecessor map from edges
     const predecessors = new Map<string, Set<string>>();
     for (const stepId of sortedStepIds) predecessors.set(stepId, new Set());
@@ -222,7 +237,7 @@ export class WorkflowEngine {
     const stepRowById = new Map<string, (typeof execution.steps)[number]>();
     for (const row of execution.steps) stepRowById.set(row.stepId, row);
 
-    let executionStatus: string = execution.status;
+    const executionStatus: string = execution.status;
 
     for (const stepId of sortedStepIds) {
       const stepDef = stepById.get(stepId);
@@ -312,6 +327,7 @@ export class WorkflowEngine {
         stepDef.inputMapping as InputMapping,
         execution.input,
         state,
+        stepIdToOutputKey,
       );
 
       await this.store.updateStep(executionId, stepId, {
@@ -491,6 +507,9 @@ export class WorkflowEngine {
     input: unknown,
     ctx: { userId: string; correlationId: string },
   ): Promise<string> {
+    console.log('[WORKFLOW ENGINE] execute called with:', { definitionId, input });
+    console.log('[WORKFLOW ENGINE] this.store:', this.store);
+    console.log('[WORKFLOW ENGINE] this.store.constructor.name:', this.store.constructor.name);
     const executionId = await this.store.createExecution(
       definitionId,
       input,
@@ -640,7 +659,17 @@ export class WorkflowEngine {
  * This is intentionally lazy — only called at wiring time in app.ts.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function createWorkflowQueue(redisUrl: string | undefined, logger: Logger): Promise<WorkflowQueue | null> {
+export async function createWorkflowQueue(
+  redisUrl: string | undefined,
+  logger: Logger,
+  opts: { isTestMode?: boolean } = {}
+): Promise<WorkflowQueue | null> {
+  // In test mode, skip Redis/BullMQ entirely to avoid connection timeouts
+  if (opts.isTestMode) {
+    logger.debug('Test mode detected — skipping BullMQ queue creation');
+    return null;
+  }
+
   if (!redisUrl) {
     logger.warn('REDIS_URL not set — workflow queue disabled, using in-process fallback');
     return null;

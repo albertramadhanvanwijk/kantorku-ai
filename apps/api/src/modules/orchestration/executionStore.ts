@@ -101,17 +101,34 @@ export class ExecutionStore {
   // ── Workflow Definitions ─────────────────────────────────────────────────
 
   async getDefinition(definitionId: string): Promise<WorkflowDefinitionRecord> {
+    console.log('[EXECUTION STORE] getDefinition called with:', definitionId);
+    console.log('[EXECUTION STORE] this.db:', this.db);
     // Try by id first, then by slug
-    let rows: Array<Record<string, unknown>> = await this.db
-      .select()
-      .from(workflowDefinitions)
-      .where(eq(workflowDefinitions.id, definitionId));
-
-    if (rows.length === 0) {
+    let rows: Array<Record<string, unknown>>;
+    try {
+      console.log('[EXECUTION STORE] About to call db.select().from(workflowDefinitions)...');
       rows = await this.db
         .select()
         .from(workflowDefinitions)
-        .where(eq(workflowDefinitions.slug, definitionId));
+        .where(eq(workflowDefinitions.id, definitionId));
+      console.log('[EXECUTION STORE] getDefinition id query rows:', rows.length);
+    } catch (err) {
+      console.log('[EXECUTION STORE] getDefinition id query ERROR:', err);
+      rows = [];
+    }
+
+    if (rows.length === 0) {
+      console.log('[EXECUTION STORE] Trying slug query...');
+      try {
+        rows = await this.db
+          .select()
+          .from(workflowDefinitions)
+          .where(eq(workflowDefinitions.slug, definitionId));
+        console.log('[EXECUTION STORE] getDefinition slug query rows:', rows.length);
+      } catch (err) {
+        console.log('[EXECUTION STORE] getDefinition slug query ERROR:', err);
+        rows = [];
+      }
     }
 
     if (rows.length === 0) {

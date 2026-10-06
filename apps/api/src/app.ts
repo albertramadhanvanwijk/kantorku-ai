@@ -10,7 +10,35 @@ import authPlugin from './plugins/auth.js';
 import { healthRoutes } from './routes/health.js';
 import { authRoutes } from './modules/auth/auth.routes.js';
 
-export async function buildApp(opts: { logger?: ReturnType<typeof createLogger> | false } = {}) {
+// Phase 2 imports
+import { NineRouterGateway } from './modules/gateway/nineRouter.gateway.js';
+import { ToolRegistry } from './modules/tools/registry.js';
+import { webSearchTool } from './modules/tools/tools/webSearch.tool.js';
+import { fetchUrlTool } from './modules/tools/tools/fetchUrl.tool.js';
+import { AgentRegistry } from './modules/agents/registry.js';
+import { AgentService } from './modules/agents/agent.service.js';
+import { RunLogger } from './modules/runs/runLogger.js';
+import { ExecutionStore } from './modules/orchestration/executionStore.js';
+import { WorkflowEngine, createWorkflowQueue } from './modules/orchestration/workflowEngine.js';
+import { WorkflowService } from './modules/orchestration/workflow.service.js';
+import { agentsRoutes } from './modules/agents/agents.routes.js';
+import { workflowsRoutes } from './modules/orchestration/workflows.routes.js';
+import { approvalsRoutes } from './modules/orchestration/approvals.routes.js';
+import { runsRoutes } from './modules/runs/runs.routes.js';
+import { toolsRoutes } from './modules/tools/tools.routes.js';
+import { registerConcreteAgents, ALL_AGENT_DEFINITIONS } from './modules/agents/agents/index.js';
+import { drizzle } from 'drizzle-orm/node-postgres';
+import { workflowDefinitions } from './db/schema.js';
+import { eq } from 'drizzle-orm';
+import pg from 'pg';
+
+export interface BuildAppOptions {
+  logger?: ReturnType<typeof createLogger> | false;
+  pgPool?: InstanceType<typeof pg.Pool>;
+  db?: ReturnType<typeof drizzle>;
+}
+
+export async function buildApp(opts: BuildAppOptions = {}) {
     const config = loadConfig();
     
     // Pass logger config directly to Fastify instead of pre-creating pino instance
@@ -28,39 +56,45 @@ export async function buildApp(opts: { logger?: ReturnType<typeof createLogger> 
 
   // Decorate config + infra for route handlers
   app.decorate('config', config);
-  const pgPool = getPool(config.DATABASE_URL);
+  const isTestMode = opts.logger === false;
+  const pgPool = opts.pgPool ?? getPool(config.DATABASE_URL);
   app.decorate('pgPool', pgPool);
 
-  // Redis is optional in Phase 0 — best-effort connect, do not crash if unavailable
+  // Redis is optional — skip in test mode (logger === false) to avoid connection timeouts
   let redis: any = null;
-  // Create a pino instance for internal logging (Redis, etc.)
-  const internalLogger = createLogger(config.LOG_LEVEL);
-  const log: any = internalLogger;
-  try {
-    const { createClient } = await import('redis');
-    const client = createClient({ url: config.REDIS_URL });
-    client.on('error', (err: Error) => log.warn({ err }, 'Redis error'));
-    // Add timeout to prevent hanging in tests/CI when Redis is unavailable
-    const connectPromise = client.connect();
-    const timeoutPromise = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error('Redis connection timeout')), 3000)
-    );
-    await Promise.race([connectPromise, timeoutPromise]).catch((err: Error) => {
-      log.warn({ err }, 'Redis connect failed or timed out — continuing without Redis');
-      return null;
-    });
-    if (client.isOpen) {
-      redis = client;
-      log.info('Redis connected');
+  if (!isTestMode) {
+    // Create a pino instance for internal logging (Redis, etc.)
+    const internalLogger = createLogger(config.LOG_LEVEL);
+    const log: any = internalLogger;
+    try {
+      const { createClient } = await import('redis');
+      const client = createClient({ url: config.REDIS_URL });
+      client.on('error', (err: Error) => log.warn({ err }, 'Redis error'));
+      // Add timeout to prevent hanging in tests/CI when Redis is unavailable
+      const connectPromise = client.connect();
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Redis connection timeout')), 3000)
+      );
+      await Promise.race([connectPromise, timeoutPromise]).catch((err: Error) => {
+        log.warn({ err }, 'Redis connect failed or timed out — continuing without Redis');
+        return null;
+      });
+      if (client.isOpen) {
+        redis = client;
+        log.info('Redis connected');
+      }
+    } catch (err) {
+      log.warn({ err }, 'Redis not available — continuing without cache/queue');
     }
-  } catch (err) {
-    log.warn({ err }, 'Redis not available — continuing without cache/queue');
   }
   app.decorate('redis', redis);
 
+  // Create a pino instance for internal logging (used by services)
+  const internalLogger = createLogger(config.LOG_LEVEL);
+  const log = internalLogger;
+
   // Lightweight db helper for services (drizzle wrapper)
-  const { drizzle } = await import('drizzle-orm/node-postgres');
-  const db = drizzle(pgPool);
+  const db = opts.db ?? drizzle(pgPool);
   app.decorate('db', db);
 
   await app.register(cors, {
@@ -113,11 +147,135 @@ export async function buildApp(opts: { logger?: ReturnType<typeof createLogger> 
     });
   });
 
+  // ── Phase 2: Initialize core services ──
+
+  // NineRouter Gateway
+  const gateway = new NineRouterGateway({
+    baseUrl: config.NINE_ROUTER_BASE_URL,
+    apiKey: config.NINE_ROUTER_API_KEY,
+    defaultModel: config.NINE_ROUTER_DEFAULT_MODEL,
+    logger: internalLogger,
+  });
+
+  // Tool Registry
+  const toolRegistry = new ToolRegistry();
+  toolRegistry.register(webSearchTool);
+  toolRegistry.register(fetchUrlTool);
+
+  // Agent Registry
+  const agentRegistry = new AgentRegistry();
+
+  // Run Logger
+  const runLogger = new RunLogger(db, internalLogger);
+
+  // Agent Service
+  const agentService = new AgentService(agentRegistry, gateway, toolRegistry, internalLogger, runLogger);
+
+  // Register concrete agents (Research, Strategist, Copywriter)
+  registerConcreteAgents(agentRegistry, agentService, gateway, toolRegistry, internalLogger);
+
+  // Execution Store
+  const executionStore = new ExecutionStore(db, internalLogger);
+
+  // Workflow Service
+  const workflowService = new WorkflowService(executionStore, internalLogger);
+
+  // BullMQ Queue (optional — degrades to in-process if Redis unavailable)
+  const queue = await createWorkflowQueue(config.REDIS_URL, internalLogger, { isTestMode });
+
+  // Workflow Engine
+  const workflowEngine = new WorkflowEngine(
+    executionStore,
+    agentService,
+    runLogger,
+    queue,
+    internalLogger,
+  );
+
+  // Decorate app with service instances for route access
+  (app as unknown as Record<string, unknown>)['gateway'] = gateway;
+  (app as unknown as Record<string, unknown>)['toolRegistry'] = toolRegistry;
+  (app as unknown as Record<string, unknown>)['agentRegistry'] = agentRegistry;
+  (app as unknown as Record<string, unknown>)['agentService'] = agentService;
+  (app as unknown as Record<string, unknown>)['runLogger'] = runLogger;
+  (app as unknown as Record<string, unknown>)['executionStore'] = executionStore;
+  (app as unknown as Record<string, unknown>)['workflowService'] = workflowService;
+  (app as unknown as Record<string, unknown>)['workflowEngine'] = workflowEngine;
+
+  // ── Seed default workflow definition if not exists (skip in test mode) ──
+  if (!isTestMode) {
+    try {
+      const existing = await db
+        .select()
+        .from(workflowDefinitions)
+        .where(eq(workflowDefinitions.slug, 'content-production-v1'))
+        .limit(1);
+      if (existing.length === 0) {
+        // Create the default linear workflow: research → strategist → copywriter
+        await workflowService.createWorkflow({
+          slug: 'content-production-v1',
+          name: 'Content Production v1',
+          version: '1.0.0',
+          definition: {
+            steps: [
+              {
+                id: 'research',
+                agentId: 'research-agent',
+                inputMapping: { type: 'fromWorkflowInput', path: '' },
+                outputKey: 'research',
+              },
+              {
+                id: 'strategist',
+                agentId: 'content-strategist-agent',
+                inputMapping: {
+                  type: 'merge',
+                  mappings: {
+                    research: { type: 'fromStepOutput', stepId: 'research', path: '' },
+                    contentCategory: { type: 'fromWorkflowInput', path: 'contentCategory' },
+                    brandVoice: { type: 'fromWorkflowInput', path: 'brandVoice' },
+                  },
+                },
+                outputKey: 'strategy',
+              },
+              {
+                id: 'copywriter',
+                agentId: 'copywriter-agent',
+                inputMapping: {
+                  type: 'merge',
+                  mappings: {
+                    strategy: { type: 'fromStepOutput', stepId: 'strategist', path: '' },
+                    template: { type: 'fromWorkflowInput', path: 'template' },
+                    tradingDna: { type: 'fromWorkflowInput', path: 'tradingDna' },
+                  },
+                },
+                outputKey: 'copy',
+              },
+            ],
+            edges: [
+              { from: 'research', to: 'strategist' },
+              { from: 'strategist', to: 'copywriter' },
+            ],
+            approvalGates: [], // No gates for happy path
+          },
+        });
+        log.info('Seeded default workflow: content-production-v1');
+      }
+    } catch (err) {
+      log.warn({ err }, 'Failed to seed default workflow (may already exist)');
+    }
+  }
+
   // Routes
   await app.register(
     async (api) => {
       await api.register(healthRoutes);
       await api.register(authRoutes);
+      // Phase 2 routes
+      await api.register(agentsRoutes);
+      await api.register(workflowsRoutes);
+      await api.register(approvalsRoutes);
+      await api.register(runsRoutes);
+      await api.register(toolsRoutes);
     },
     { prefix: '/api' },
   );
