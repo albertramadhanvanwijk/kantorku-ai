@@ -7,7 +7,10 @@ export type ErrorCode =
   | 'RATE_LIMITED'
   | 'PROVIDER_ERROR'
   | 'WORKFLOW_ERROR'
-  | 'SYSTEM_ERROR';
+  | 'SYSTEM_ERROR'
+  | 'BUDGET_EXCEEDED'
+  | 'TIMEOUT'
+  | 'APPROVAL_REQUIRED';
 
 export class AppError extends Error {
   public readonly code: ErrorCode;
@@ -41,6 +44,18 @@ export function notFound(message = 'Not found'): AppError {
 
 export function conflict(message: string): AppError {
   return new AppError('CONFLICT', message, 409);
+}
+
+export function budgetExceeded(message: string, details?: unknown): AppError {
+  return new AppError('BUDGET_EXCEEDED', message, 402, details);
+}
+
+export function timeoutError(message: string, details?: unknown): AppError {
+  return new AppError('TIMEOUT', message, 504, details);
+}
+
+export function approvalRequired(message: string, details?: unknown): AppError {
+  return new AppError('APPROVAL_REQUIRED', message, 409, details);
 }
 
 export type ErrorEnvelope = {
