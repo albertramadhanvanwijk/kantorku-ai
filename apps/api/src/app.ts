@@ -34,7 +34,9 @@ import pg from 'pg';
 import { createStorageAdapter } from './modules/materials/storage/index.js';
 import { MaterialsService } from './modules/materials/materials.service.js';
 import { ClassificationService } from './modules/materials/classification.service.js';
+import { SourcePacksService } from './modules/materials/sourcePacks.service.js';
 import { materialsRoutes } from './modules/materials/materials.routes.js';
+import { sourcePacksRoutes } from './modules/materials/sourcePacks.routes.js';
 
 export interface BuildAppOptions {
   logger?: ReturnType<typeof createLogger> | false;
@@ -230,10 +232,12 @@ export async function buildApp(opts: BuildAppOptions = {}) {
   let storage: ReturnType<typeof createStorageAdapter> | null = null;
   let materialsService: MaterialsService | null = null;
   let classificationService: ClassificationService | null = null;
+  let sourcePacksService: SourcePacksService | null = null;
   try {
     storage = createStorageAdapter(config);
     classificationService = new ClassificationService({ db, agentService, storage, logger: internalLogger });
     materialsService = new MaterialsService({ db, storage, logger: internalLogger, config, classificationService });
+    sourcePacksService = new SourcePacksService({ db, logger: internalLogger });
   } catch (err) {
     internalLogger.warn({ err: err instanceof Error ? err.message : String(err) }, 'Materials storage init failed — routes will error until configured');
   }
@@ -250,6 +254,7 @@ export async function buildApp(opts: BuildAppOptions = {}) {
   if (storage) (app as unknown as Record<string, unknown>)['storage'] = storage;
   if (materialsService) (app as unknown as Record<string, unknown>)['materialsService'] = materialsService;
   if (classificationService) (app as unknown as Record<string, unknown>)['classificationService'] = classificationService;
+  if (sourcePacksService) (app as unknown as Record<string, unknown>)['sourcePacksService'] = sourcePacksService;
 
   // ── Seed default workflow definition if not exists (skip in test mode) ──
   if (!isTestMode) {
@@ -325,8 +330,9 @@ export async function buildApp(opts: BuildAppOptions = {}) {
       await api.register(approvalsRoutes);
       await api.register(runsRoutes);
       await api.register(toolsRoutes);
-      // Phase 3: materials
+      // Phase 3: materials + source packs
       await api.register(materialsRoutes);
+      await api.register(sourcePacksRoutes);
     },
     { prefix: '/api' },
   );
