@@ -6,6 +6,7 @@
     "moduleResolution": "Bundler",
     "allowSyntheticDefaultImports": true,
     "jsx": "preserve",
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
     "types": ["node", "vitest/globals", "nuxt/schema"],
     "baseUrl": ".",
     "paths": {
