@@ -1,3 +1,5 @@
+import type { Classification, MaterialType } from './useMaterials';
+
 export interface SourcePack {
   id: string;
   name: string;
@@ -21,9 +23,9 @@ export interface SourcePackItem {
   createdAt: string;
   material?: {
     id: string;
-    type: string;
+    type: MaterialType;
     title: string;
-    classification: any;
+    classification: Classification;
     createdAt: string;
     fileAsset?: {
       id: string;
@@ -59,6 +61,15 @@ export function useSourcePacks() {
 
   const apiBase = useRuntimeConfig().public.apiBase;
 
+  interface ApiErrorResponse {
+    data?: {
+      error?: {
+        message: string;
+      };
+    };
+    message?: string;
+  }
+
   async function list(params: { page?: number; pageSize?: number } = {}): Promise<{ rows: SourcePack[]; total: number; page: number; pageSize: number }> {
     loading.value = true;
     error.value = null;
@@ -73,8 +84,9 @@ export function useSourcePacks() {
       );
       packs.value = response.data.rows;
       return response.data;
-    } catch (err: any) {
-      const msg = err?.data?.error?.message || err?.message || 'Failed to fetch source packs';
+    } catch (err: unknown) {
+      const apiErr = err as ApiErrorResponse;
+      const msg = apiErr?.data?.error?.message || apiErr?.message || 'Failed to fetch source packs';
       error.value = msg;
       throw err;
     } finally {
@@ -96,8 +108,9 @@ export function useSourcePacks() {
       );
       packs.value.unshift(response.data);
       return response.data;
-    } catch (err: any) {
-      const msg = err?.data?.error?.message || err?.message || 'Failed to create source pack';
+    } catch (err: unknown) {
+      const apiErr = err as ApiErrorResponse;
+      const msg = apiErr?.data?.error?.message || apiErr?.message || 'Failed to create source pack';
       error.value = msg;
       throw err;
     } finally {
@@ -115,8 +128,9 @@ export function useSourcePacks() {
       );
       currentPack.value = response.data;
       return response.data;
-    } catch (err: any) {
-      const msg = err?.data?.error?.message || err?.message || 'Failed to fetch source pack';
+    } catch (err: unknown) {
+      const apiErr = err as ApiErrorResponse;
+      const msg = apiErr?.data?.error?.message || apiErr?.message || 'Failed to fetch source pack';
       error.value = msg;
       throw err;
     } finally {
@@ -142,8 +156,9 @@ export function useSourcePacks() {
         currentPack.value = { ...currentPack.value, ...response.data };
       }
       return response.data;
-    } catch (err: any) {
-      const msg = err?.data?.error?.message || err?.message || 'Failed to update source pack';
+    } catch (err: unknown) {
+      const apiErr = err as ApiErrorResponse;
+      const msg = apiErr?.data?.error?.message || apiErr?.message || 'Failed to update source pack';
       error.value = msg;
       throw err;
     } finally {
@@ -161,8 +176,9 @@ export function useSourcePacks() {
       });
       packs.value = packs.value.filter(p => p.id !== id);
       if (currentPack.value?.id === id) currentPack.value = null;
-    } catch (err: any) {
-      const msg = err?.data?.error?.message || err?.message || 'Failed to delete source pack';
+    } catch (err: unknown) {
+      const apiErr = err as ApiErrorResponse;
+      const msg = apiErr?.data?.error?.message || apiErr?.message || 'Failed to delete source pack';
       error.value = msg;
       throw err;
     } finally {
@@ -186,8 +202,9 @@ export function useSourcePacks() {
         currentPack.value = response.data;
       }
       return response.data;
-    } catch (err: any) {
-      const msg = err?.data?.error?.message || err?.message || 'Failed to add items to pack';
+    } catch (err: unknown) {
+      const apiErr = err as ApiErrorResponse;
+      const msg = apiErr?.data?.error?.message || apiErr?.message || 'Failed to add items to pack';
       error.value = msg;
       throw err;
     } finally {
@@ -209,8 +226,9 @@ export function useSourcePacks() {
           items: currentPack.value.items.filter(i => i.materialId !== materialId),
         };
       }
-    } catch (err: any) {
-      const msg = err?.data?.error?.message || err?.message || 'Failed to remove item from pack';
+    } catch (err: unknown) {
+      const apiErr = err as ApiErrorResponse;
+      const msg = apiErr?.data?.error?.message || apiErr?.message || 'Failed to remove item from pack';
       error.value = msg;
       throw err;
     } finally {
@@ -234,8 +252,9 @@ export function useSourcePacks() {
         currentPack.value = response.data;
       }
       return response.data;
-    } catch (err: any) {
-      const msg = err?.data?.error?.message || err?.message || 'Failed to reorder items';
+    } catch (err: unknown) {
+      const apiErr = err as ApiErrorResponse;
+      const msg = apiErr?.data?.error?.message || apiErr?.message || 'Failed to reorder items';
       error.value = msg;
       throw err;
     } finally {

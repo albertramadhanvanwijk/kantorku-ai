@@ -280,8 +280,8 @@ import MaterialCard from '~/components/source-room/MaterialCard.vue';
 import SourcePackCard from '~/components/source-room/SourcePackCard.vue';
 import { useMaterials } from '~/composables/useMaterials';
 import { useSourcePacks } from '~/composables/useSourcePacks';
-
-type MaterialType = 'chart' | 'trade_screenshot' | 'text_note' | 'news' | 'promo_asset' | 'logo' | 'document';
+import type { CreatorMaterial, MaterialType } from '~/composables/useMaterials';
+import type { SourcePack } from '~/composables/useSourcePacks';
 
 const router = useRouter();
 
@@ -291,6 +291,7 @@ const {
   error: materialsError,
   list: fetchMaterialsList,
   remove: deleteMaterial,
+  extract: extractMaterial,
 } = useMaterials();
 
 const {
@@ -359,23 +360,24 @@ async function refreshMaterials() {
   await fetchMaterials();
 }
 
-async function handleExtract(material: any) {
+async function handleExtract(material: CreatorMaterial) {
   try {
-    const { extract } = useMaterials();
-    await extract(material.id, { type: 'chart' });
+    await extractMaterial(material.id, { type: 'chart' });
     await fetchMaterials();
   } catch (err) {
     console.error('Extract failed:', err);
   }
 }
 
-async function handleAddToPack(material: any) {
-  // Open modal to select pack - for now navigate to packs tab
+async function handleAddToPack(material: CreatorMaterial) {
+  // Open modal to select pack - for now navigate to packs tab with material context
   activeTab.value = 'packs';
   // Could emit event to parent to open modal
+  // TODO: Implement pack selection modal
+  console.log('Add to pack:', material.id);
 }
 
-async function handleDeleteMaterial(material: any) {
+async function handleDeleteMaterial(material: CreatorMaterial) {
   if (!window.confirm(`Delete "${material.title}"? This cannot be undone.`)) return;
   try {
     await deleteMaterial(material.id);
@@ -385,11 +387,11 @@ async function handleDeleteMaterial(material: any) {
   }
 }
 
-async function handleAddMaterialsToPack(pack: any) {
+async function handleAddMaterialsToPack(pack: SourcePack) {
   router.push(`/source-room/${pack.id}`);
 }
 
-async function handleDeletePack(pack: any) {
+async function handleDeletePack(pack: SourcePack) {
   if (!window.confirm(`Delete pack "${pack.name}"? Materials will not be deleted.`)) return;
   try {
     await deletePack(pack.id);
@@ -414,12 +416,12 @@ function createNewPack() {
   }
 }
 
-function openMaterialDetail(material: any) {
+function openMaterialDetail(material: CreatorMaterial) {
   // Could open a detail modal or navigate
   console.log('Open material:', material.id);
 }
 
-function openPackDetail(pack: any) {
+function openPackDetail(pack: SourcePack) {
   router.push(`/source-room/${pack.id}`);
 }
 

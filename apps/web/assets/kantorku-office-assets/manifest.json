@@ -1,0 +1,238 @@
+{
+  "departments": [
+    {
+      "id": "hq",
+      "name": "HQ / AI COO",
+      "color": "#818CF8",
+      "room": "rooms/room-hq.svg",
+      "icon": "icons/hq.svg"
+    },
+    {
+      "id": "research",
+      "name": "Research Office",
+      "color": "#38BDF8",
+      "room": "rooms/room-research.svg",
+      "icon": "icons/research.svg"
+    },
+    {
+      "id": "trading",
+      "name": "Trading Intelligence",
+      "color": "#FBBF24",
+      "room": "rooms/room-trading.svg",
+      "icon": "icons/trading.svg"
+    },
+    {
+      "id": "content",
+      "name": "Content Studio",
+      "color": "#34D399",
+      "room": "rooms/room-content.svg",
+      "icon": "icons/content.svg"
+    },
+    {
+      "id": "creative",
+      "name": "Creative Studio",
+      "color": "#F472B6",
+      "room": "rooms/room-creative.svg",
+      "icon": "icons/creative.svg"
+    },
+    {
+      "id": "qa",
+      "name": "QA & Compliance",
+      "color": "#FB923C",
+      "room": "rooms/room-qa.svg",
+      "icon": "icons/qa.svg"
+    },
+    {
+      "id": "analytics",
+      "name": "Analytics & Growth",
+      "color": "#A3E635",
+      "room": "rooms/room-analytics.svg",
+      "icon": "icons/analytics.svg"
+    },
+    {
+      "id": "knowledge",
+      "name": "Knowledge Center",
+      "color": "#C084FC",
+      "room": "rooms/room-knowledge.svg",
+      "icon": "icons/knowledge.svg"
+    },
+    {
+      "id": "tasks",
+      "name": "Task / Workflow Center",
+      "color": "#2DD4BF",
+      "room": "rooms/room-tasks.svg",
+      "icon": "icons/tasks.svg"
+    }
+  ],
+  "agents": [
+    {
+      "id": "coo",
+      "name": "AI COO / Orchestrator",
+      "code": "COO",
+      "department": "hq",
+      "avatar": "agents/avatar-coo.svg",
+      "sprite": "sprites/sprite-coo.svg"
+    },
+    {
+      "id": "research",
+      "name": "Research Agent",
+      "code": "RSC",
+      "department": "research",
+      "avatar": "agents/avatar-research.svg",
+      "sprite": "sprites/sprite-research.svg"
+    },
+    {
+      "id": "news-verification",
+      "name": "News Verification Agent",
+      "code": "NWS",
+      "department": "research",
+      "avatar": "agents/avatar-news-verification.svg",
+      "sprite": "sprites/sprite-news-verification.svg"
+    },
+    {
+      "id": "market-research",
+      "name": "Market Research Agent",
+      "code": "MKT",
+      "department": "research",
+      "avatar": "agents/avatar-market-research.svg",
+      "sprite": "sprites/sprite-market-research.svg"
+    },
+    {
+      "id": "trading-analyst",
+      "name": "Trading Analyst",
+      "code": "TRA",
+      "department": "trading",
+      "avatar": "agents/avatar-trading-analyst.svg",
+      "sprite": "sprites/sprite-trading-analyst.svg"
+    },
+    {
+      "id": "trading-journal",
+      "name": "Trading Journal Agent",
+      "code": "JRN",
+      "department": "trading",
+      "avatar": "agents/avatar-trading-journal.svg",
+      "sprite": "sprites/sprite-trading-journal.svg"
+    },
+    {
+      "id": "market-outlook",
+      "name": "Market Outlook Agent",
+      "code": "OUT",
+      "department": "trading",
+      "avatar": "agents/avatar-market-outlook.svg",
+      "sprite": "sprites/sprite-market-outlook.svg"
+    },
+    {
+      "id": "content-strategist",
+      "name": "Content Strategist",
+      "code": "STR",
+      "department": "content",
+      "avatar": "agents/avatar-content-strategist.svg",
+      "sprite": "sprites/sprite-content-strategist.svg"
+    },
+    {
+      "id": "hook",
+      "name": "Hook Agent",
+      "code": "HOK",
+      "department": "content",
+      "avatar": "agents/avatar-hook.svg",
+      "sprite": "sprites/sprite-hook.svg"
+    },
+    {
+      "id": "copywriter",
+      "name": "Copywriter",
+      "code": "CPY",
+      "department": "content",
+      "avatar": "agents/avatar-copywriter.svg",
+      "sprite": "sprites/sprite-copywriter.svg"
+    },
+    {
+      "id": "creative-director",
+      "name": "Creative Director / Slide Designer",
+      "code": "CRD",
+      "department": "creative",
+      "avatar": "agents/avatar-creative-director.svg",
+      "sprite": "sprites/sprite-creative-director.svg"
+    },
+    {
+      "id": "visual-qa",
+      "name": "Visual QA Agent",
+      "code": "VQA",
+      "department": "qa",
+      "avatar": "agents/avatar-visual-qa.svg",
+      "sprite": "sprites/sprite-visual-qa.svg"
+    },
+    {
+      "id": "risk-factcheck",
+      "name": "Risk & Fact Check Agent",
+      "code": "RFC",
+      "department": "qa",
+      "avatar": "agents/avatar-risk-factcheck.svg",
+      "sprite": "sprites/sprite-risk-factcheck.svg"
+    },
+    {
+      "id": "analytics",
+      "name": "Analytics Agent",
+      "code": "ANL",
+      "department": "analytics",
+      "avatar": "agents/avatar-analytics.svg",
+      "sprite": "sprites/sprite-analytics.svg"
+    },
+    {
+      "id": "growth-experiment",
+      "name": "Growth / Experiment Agent",
+      "code": "GRW",
+      "department": "analytics",
+      "avatar": "agents/avatar-growth-experiment.svg",
+      "sprite": "sprites/sprite-growth-experiment.svg"
+    },
+    {
+      "id": "knowledge",
+      "name": "Knowledge Agent",
+      "code": "KNW",
+      "department": "knowledge",
+      "avatar": "agents/avatar-knowledge.svg",
+      "sprite": "sprites/sprite-knowledge.svg"
+    },
+    {
+      "id": "cost-router",
+      "name": "Cost / Model Routing Manager",
+      "code": "CST",
+      "department": "tasks",
+      "avatar": "agents/avatar-cost-router.svg",
+      "sprite": "sprites/sprite-cost-router.svg"
+    }
+  ],
+  "statuses": [
+    {
+      "id": "working",
+      "color": "#38BDF8",
+      "file": "status/status-working.svg"
+    },
+    {
+      "id": "thinking",
+      "color": "#A78BFA",
+      "file": "status/status-thinking.svg"
+    },
+    {
+      "id": "waiting",
+      "color": "#FBBF24",
+      "file": "status/status-waiting.svg"
+    },
+    {
+      "id": "completed",
+      "color": "#34D399",
+      "file": "status/status-completed.svg"
+    },
+    {
+      "id": "error",
+      "color": "#F87171",
+      "file": "status/status-error.svg"
+    },
+    {
+      "id": "offline",
+      "color": "#64748B",
+      "file": "status/status-offline.svg"
+    }
+  ],
+  "map": "office-map.svg"
+}

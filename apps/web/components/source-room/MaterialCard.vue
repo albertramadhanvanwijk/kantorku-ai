@@ -110,13 +110,13 @@
       </div>
 
       <!-- Metadata hints -->
-      <div v-if="material.metadata?.extraction" class="mt-auto pt-2 border-t border-surface-100">
+      <div v-if="getExtraction()" class="mt-auto pt-2 border-t border-surface-100">
         <div class="flex items-center gap-1.5 text-xs text-surface-500">
           <Icon name="CheckCircle2" size="xs" class="text-success-500" />
           <span>Extracted</span>
         </div>
-        <div v-if="material.metadata.extraction.instrument" class="text-xs text-surface-600 mt-1">
-          {{ material.metadata.extraction.instrument }}
+        <div v-if="getExtraction()?.instrument" class="text-xs text-surface-600 mt-1">
+          {{ getExtraction()!.instrument }}
         </div>
       </div>
     </div>
@@ -131,74 +131,47 @@ import { computed } from 'vue';
 import Card from '../ui/Card.vue';
 import Badge from '../ui/Badge.vue';
 import Icon from '../ui/Icon.vue';
+import type { CreatorMaterial, MaterialType } from '~/composables/useMaterials';
 
-interface Material {
-  id: string;
-  type: string;
-  title: string;
-  fileAssetId: string;
-  metadata: (Record<string, unknown> & {
-    extraction?: {
-      instrument?: string;
-      timeframe?: string;
-      indicators?: string[];
-      priceLevels?: number[];
-      chartType?: string;
-      confidence?: number;
-      extractedText?: string;
-      language?: string;
-      structure?: string;
-      entities?: string[];
-      trades?: Array<{
-        instrument: string;
-        direction: 'long' | 'short';
-        entry?: number;
-        exit?: number;
-        sl?: number;
-        tp?: number;
-        timeframe?: string;
-        result?: string;
-        openedAt?: string;
-        closedAt?: string;
-        notes?: string;
-      }>;
-    };
-  }) | null;
-  classification: {
-    userDeclared: string | null;
-    aiVerified: string | null;
-    confidence: number | null;
-    reasoning: string | null;
-    verifiedAt: string | null;
-  };
-  provenance: {
-    uploadedAt: string;
-    userId: string;
-  };
-  createdAt: string;
-  updatedAt: string;
-  fileAsset?: {
-    id: string;
-    key: string;
-    url?: string;
-    mimeType: string;
-    sizeBytes: number;
-  };
+interface ExtractionMetadata {
+  instrument?: string;
+  timeframe?: string;
+  indicators?: string[];
+  priceLevels?: number[];
+  chartType?: string;
+  confidence?: number;
+  extractedText?: string;
+  language?: string;
+  structure?: string;
+  entities?: string[];
+  trades?: Array<{
+    instrument: string;
+    direction: 'long' | 'short';
+    entry?: number;
+    exit?: number;
+    sl?: number;
+    tp?: number;
+    timeframe?: string;
+    result?: string;
+    openedAt?: string;
+    closedAt?: string;
+    notes?: string;
+  }>;
 }
 
 interface Props {
-  material: Material;
+  material: CreatorMaterial;
   showCheckbox?: boolean;
   showActions?: boolean;
   selected?: boolean;
 }
 
 interface Emits {
-  click: [material: Material];
+  click: [material: CreatorMaterial];
   'toggle-select': [materialId: string];
-  extract: [material: Material];
-  'add-to-pack': [material: Material];
-  delete: [material: Material];
+  extract: [material: CreatorMaterial];
+  'add-to-pack': [material: CreatorMaterial];
+  delete: [material: CreatorMaterial];
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -212,8 +185,13 @@ const emit = defineEmits<Emits>();
 const isImage = computed(() => props.material.fileAsset?.mimeType?.startsWith('image/') ?? false);
 const fileAsset = computed(() => props.material.fileAsset);
 
-function getTypeIcon(type: string): string {
-  const icons: Record<string, string> = {
+function getExtraction(): ExtractionMetadata | undefined {
+  const meta = props.material.metadata as (Record<string, unknown> & { extraction?: ExtractionMetadata }) | null;
+  return meta?.extraction;
+}
+
+function getTypeIcon(type: MaterialType): string {
+  const icons: Record<MaterialType, string> = {
     chart: 'BarChart3',
     trade_screenshot: 'Camera',
     text_note: 'FileText',
@@ -225,8 +203,8 @@ function getTypeIcon(type: string): string {
   return icons[type] ?? 'File';
 }
 
-function getTypeIconColor(type: string): string {
-  const colors: Record<string, string> = {
+function getTypeIconColor(type: MaterialType): string {
+  const colors: Record<MaterialType, string> = {
     chart: 'text-emerald-500',
     trade_screenshot: 'text-blue-500',
     text_note: 'text-indigo-500',
@@ -238,8 +216,8 @@ function getTypeIconColor(type: string): string {
   return colors[type] ?? 'text-surface-500';
 }
 
-function getTypeBadgeVariant(type: string): 'success' | 'warning' | 'error' | 'info' | 'neutral' | 'brand' {
-  const variants: Record<string, 'success' | 'warning' | 'error' | 'info' | 'neutral' | 'brand'> = {
+function getTypeBadgeVariant(type: MaterialType): 'success' | 'warning' | 'error' | 'info' | 'neutral' | 'brand' {
+  const variants: Record<MaterialType, 'success' | 'warning' | 'error' | 'info' | 'neutral' | 'brand'> = {
     chart: 'success',
     trade_screenshot: 'info',
     text_note: 'neutral',
@@ -251,7 +229,7 @@ function getTypeBadgeVariant(type: string): 'success' | 'warning' | 'error' | 'i
   return variants[type] ?? 'neutral';
 }
 
-function formatType(type: string): string {
+function formatType(type: MaterialType): string {
   return type
     .split('_')
     .map(w => w.charAt(0).toUpperCase() + w.slice(1))

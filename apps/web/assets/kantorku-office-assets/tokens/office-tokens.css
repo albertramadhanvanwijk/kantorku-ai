@@ -1,0 +1,18 @@
+:root{
+  --office-bg:#0B1020;--office-ink:#E2E8F0;
+  --dept-hq:#818CF8;
+  --dept-research:#38BDF8;
+  --dept-trading:#FBBF24;
+  --dept-content:#34D399;
+  --dept-creative:#F472B6;
+  --dept-qa:#FB923C;
+  --dept-analytics:#A3E635;
+  --dept-knowledge:#C084FC;
+  --dept-tasks:#2DD4BF;
+  --status-working:#38BDF8;
+  --status-thinking:#A78BFA;
+  --status-waiting:#FBBF24;
+  --status-completed:#34D399;
+  --status-error:#F87171;
+  --status-offline:#64748B;
+}

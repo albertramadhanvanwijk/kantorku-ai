@@ -120,9 +120,9 @@
               <MaterialCard
                 v-for="item in pack.items"
                 :key="item.materialId"
-                :material="item.material as any"
+                :material="item.material as CreatorMaterial"
                 :show-actions="true"
-                @click="openMaterialDetail(item.material)"
+                @click="openMaterialDetail(item.material as CreatorMaterial)"
                 @extract="handleExtract"
                 @add-to-pack="handleAddToOtherPack"
                 @delete="handleRemoveFromPack"
@@ -222,7 +222,8 @@ import Input from '~/components/ui/Input.vue';
 import MaterialCard from '~/components/source-room/MaterialCard.vue';
 import { useMaterials } from '~/composables/useMaterials';
 import { useSourcePacks } from '~/composables/useSourcePacks';
-import type { SourcePackWithItems } from '~/composables/useSourcePacks';
+import type { SourcePackWithItems, SourcePackItem } from '~/composables/useSourcePacks';
+import type { CreatorMaterial, MaterialType } from '~/composables/useMaterials';
 
 const router = useRouter();
 const route = useRoute();
@@ -252,7 +253,7 @@ const dragOverIndex = ref<number | null>(null);
 const showAddMaterialsModal = ref(false);
 const addMaterialsSearch = ref('');
 const addMaterialsLoading = ref(false);
-const availableMaterials = ref<any[]>([]);
+const availableMaterials = ref<CreatorMaterial[]>([]);
 const selectedMaterialIds = ref<string[]>([]);
 const addingMaterials = ref(false);
 
@@ -275,7 +276,7 @@ async function loadAvailableMaterials() {
   try {
     // Fetch all materials not in this pack
     const res = await fetchAllMaterials({ page: 1, pageSize: 200 });
-    const packMaterialIds = new Set(pack.value?.items?.map((i: any) => i.materialId) || []);
+    const packMaterialIds = new Set(pack.value?.items?.map((i: SourcePackItem) => i.materialId) || []);
     availableMaterials.value = res.rows.filter(m => !packMaterialIds.has(m.id));
   } catch (err) {
     console.error('Failed to load available materials:', err);
@@ -391,7 +392,7 @@ function onDragEnd() {
   dragOverIndex.value = null;
 }
 
-async function handleExtract(material: any) {
+async function handleExtract(material: CreatorMaterial) {
   try {
     await extractMaterial(material.id, { type: 'chart' });
     await loadPack();
@@ -400,12 +401,12 @@ async function handleExtract(material: any) {
   }
 }
 
-function handleAddToOtherPack(material: any) {
+function handleAddToOtherPack(material: CreatorMaterial) {
   // Could open a modal to select another pack
   console.log('Add to other pack:', material);
 }
 
-async function handleRemoveFromPack(material: any) {
+async function handleRemoveFromPack(material: CreatorMaterial) {
   if (!pack.value) return;
   if (!window.confirm(`Remove "${material.title}" from this pack?`)) return;
   try {
@@ -416,7 +417,7 @@ async function handleRemoveFromPack(material: any) {
   }
 }
 
-function openMaterialDetail(material: any) {
+function openMaterialDetail(material: CreatorMaterial) {
   console.log('Open material:', material.id);
 }
 

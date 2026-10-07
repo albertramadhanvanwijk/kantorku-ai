@@ -183,6 +183,7 @@ import Input from '~/components/ui/Input.vue';
 import Icon from '~/components/ui/Icon.vue';
 import { useMaterials } from '~/composables/useMaterials';
 import { useSourcePacks } from '~/composables/useSourcePacks';
+import type { CreatorMaterial, MaterialType } from '~/composables/useMaterials';
 
 /// <reference types="@vue/runtime-dom" />
 /// <reference lib="dom" />
@@ -202,8 +203,6 @@ const {
   loading: packsLoading,
 } = useSourcePacks();
 
-type MaterialType = 'chart' | 'trade_screenshot' | 'text_note' | 'news' | 'promo_asset' | 'logo' | 'document';
-
 const dropzoneRef = ref<InstanceType<typeof UploadDropzone> | null>(null);
 
 const selectedFiles = ref<File[]>([]);
@@ -218,7 +217,7 @@ const uploadResults = ref<Array<{
   fileName: string;
   success: boolean;
   message: string;
-  material?: any;
+  material?: CreatorMaterial;
 }>>([]);
 
 const acceptTypes = 'image/*,.pdf,.txt,.md,.json';
@@ -280,11 +279,12 @@ async function handleSubmit() {
         message: 'Uploaded successfully',
         material,
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const apiErr = err as { data?: { error?: { message: string } }; message?: string };
       results.push({
         fileName: file.name,
         success: false,
-        message: err?.data?.error?.message || err?.message || 'Upload failed',
+        message: apiErr?.data?.error?.message || apiErr?.message || 'Upload failed',
       });
     }
   }
@@ -305,7 +305,7 @@ function clearResults() {
   uploadResults.value = [];
 }
 
-function navigateToPack(material: any) {
+function navigateToPack(material: CreatorMaterial) {
   // Navigate to pack if material was added to one, or just go back to index
   router.push('/source-room');
 }

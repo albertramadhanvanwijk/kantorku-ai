@@ -1,4 +1,4 @@
-type MaterialType = 'chart' | 'trade_screenshot' | 'text_note' | 'news' | 'promo_asset' | 'logo' | 'document';
+export type MaterialType = 'chart' | 'trade_screenshot' | 'text_note' | 'news' | 'promo_asset' | 'logo' | 'document';
 
 export interface FileAsset {
   id: string;
@@ -72,10 +72,13 @@ export function useMaterials() {
 
   const apiBase = useRuntimeConfig().public.apiBase;
 
-  async function fetchAuthHeaders() {
-    // Nuxt 3 useFetch automatically handles auth if we have the user session
-    // We'll use $fetch which will use the auth cookie
-    return {};
+  interface ApiErrorResponse {
+    data?: {
+      error?: {
+        message: string;
+      };
+    };
+    message?: string;
   }
 
   async function list(params: MaterialsListParams = {}): Promise<MaterialsListResponse> {
@@ -94,8 +97,9 @@ export function useMaterials() {
       );
       materials.value = response.data.rows;
       return response.data;
-    } catch (err: any) {
-      const msg = err?.data?.error?.message || err?.message || 'Failed to fetch materials';
+    } catch (err: unknown) {
+      const apiErr = err as ApiErrorResponse;
+      const msg = apiErr?.data?.error?.message || apiErr?.message || 'Failed to fetch materials';
       error.value = msg;
       throw err;
     } finally {
@@ -125,8 +129,9 @@ export function useMaterials() {
       // Add to local list
       materials.value.unshift(response.data.material);
       return response.data.material;
-    } catch (err: any) {
-      const msg = err?.data?.error?.message || err?.message || 'Upload failed';
+    } catch (err: unknown) {
+      const apiErr = err as ApiErrorResponse;
+      const msg = apiErr?.data?.error?.message || apiErr?.message || 'Upload failed';
       error.value = msg;
       throw err;
     } finally {
@@ -143,8 +148,9 @@ export function useMaterials() {
         { credentials: 'include' }
       );
       return response.data;
-    } catch (err: any) {
-      const msg = err?.data?.error?.message || err?.message || 'Failed to fetch material';
+    } catch (err: unknown) {
+      const apiErr = err as ApiErrorResponse;
+      const msg = apiErr?.data?.error?.message || apiErr?.message || 'Failed to fetch material';
       error.value = msg;
       throw err;
     } finally {
@@ -168,8 +174,9 @@ export function useMaterials() {
       const idx = materials.value.findIndex(m => m.id === id);
       if (idx >= 0) materials.value[idx] = response.data;
       return response.data;
-    } catch (err: any) {
-      const msg = err?.data?.error?.message || err?.message || 'Extraction failed';
+    } catch (err: unknown) {
+      const apiErr = err as ApiErrorResponse;
+      const msg = apiErr?.data?.error?.message || apiErr?.message || 'Extraction failed';
       error.value = msg;
       throw err;
     } finally {
@@ -191,8 +198,9 @@ export function useMaterials() {
       const idx = materials.value.findIndex(m => m.id === id);
       if (idx >= 0) materials.value[idx] = response.data;
       return response.data;
-    } catch (err: any) {
-      const msg = err?.data?.error?.message || err?.message || 'Classification failed';
+    } catch (err: unknown) {
+      const apiErr = err as ApiErrorResponse;
+      const msg = apiErr?.data?.error?.message || apiErr?.message || 'Classification failed';
       error.value = msg;
       throw err;
     } finally {
@@ -215,8 +223,9 @@ export function useMaterials() {
       const idx = materials.value.findIndex(m => m.id === id);
       if (idx >= 0) materials.value[idx] = response.data;
       return response.data;
-    } catch (err: any) {
-      const msg = err?.data?.error?.message || err?.message || 'Update failed';
+    } catch (err: unknown) {
+      const apiErr = err as ApiErrorResponse;
+      const msg = apiErr?.data?.error?.message || apiErr?.message || 'Update failed';
       error.value = msg;
       throw err;
     } finally {
@@ -233,8 +242,9 @@ export function useMaterials() {
         credentials: 'include',
       });
       materials.value = materials.value.filter(m => m.id !== id);
-    } catch (err: any) {
-      const msg = err?.data?.error?.message || err?.message || 'Delete failed';
+    } catch (err: unknown) {
+      const apiErr = err as ApiErrorResponse;
+      const msg = apiErr?.data?.error?.message || apiErr?.message || 'Delete failed';
       error.value = msg;
       throw err;
     } finally {
