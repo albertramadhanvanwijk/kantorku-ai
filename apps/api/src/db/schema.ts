@@ -7,6 +7,7 @@ import {
   jsonb,
   index,
   integer,
+  bigint,
   unique,
 } from 'drizzle-orm/pg-core';
 
@@ -234,5 +235,75 @@ export const agentEvents = pgTable(
   (t) => [
     index('agent_events_agent_run_idx').on(t.agentRunId),
     index('agent_events_execution_idx').on(t.workflowExecutionId),
+  ],
+);
+
+// ── Phase 3: Source Room ─────────────────────────────────────────────────
+// Spec §4.1 — file_assets, creator_materials, source_packs, source_pack_items
+
+export const fileAssets = pgTable(
+  'file_assets',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    storageDriver: varchar('storage_driver', { length: 20 }).notNull(),
+    bucket: varchar('bucket', { length: 255 }),
+    key: varchar('key', { length: 500 }).notNull(),
+    originalName: varchar('original_name', { length: 500 }).notNull(),
+    mimeType: varchar('mime_type', { length: 100 }).notNull(),
+    sizeBytes: bigint('size_bytes', { mode: 'number' }).notNull(),
+    checksum: varchar('checksum', { length: 64 }).notNull().unique(),
+    uploadedBy: uuid('uploaded_by').references(() => users.id),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('file_assets_checksum_idx').on(t.checksum)],
+);
+
+export const creatorMaterials = pgTable(
+  'creator_materials',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    type: varchar('type', { length: 50 }).notNull(),
+    title: varchar('title', { length: 500 }),
+    fileAssetId: uuid('file_asset_id').references(() => fileAssets.id),
+    metadata: jsonb('metadata'),
+    classification: jsonb('classification'),
+    provenance: jsonb('provenance'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('creator_materials_type_idx').on(t.type)],
+);
+
+export const sourcePacks = pgTable(
+  'source_packs',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    name: varchar('name', { length: 500 }).notNull(),
+    description: text('description'),
+    createdBy: uuid('created_by').references(() => users.id),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('source_packs_created_by_idx').on(t.createdBy)],
+);
+
+export const sourcePackItems = pgTable(
+  'source_pack_items',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    sourcePackId: uuid('source_pack_id')
+      .notNull()
+      .references(() => sourcePacks.id, { onDelete: 'cascade' }),
+    materialId: uuid('material_id')
+      .notNull()
+      .references(() => creatorMaterials.id, { onDelete: 'cascade' }),
+    sortOrder: integer('sort_order').notNull().default(0),
+    notes: text('notes'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    unique('source_pack_items_pack_material_unique').on(t.sourcePackId, t.materialId),
+    index('source_pack_items_pack_idx').on(t.sourcePackId),
+    index('source_pack_items_material_idx').on(t.materialId),
   ],
 );

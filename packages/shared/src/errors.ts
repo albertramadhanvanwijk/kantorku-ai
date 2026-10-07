@@ -10,7 +10,14 @@ export type ErrorCode =
   | 'SYSTEM_ERROR'
   | 'BUDGET_EXCEEDED'
   | 'TIMEOUT'
-  | 'APPROVAL_REQUIRED';
+  | 'APPROVAL_REQUIRED'
+  | 'FILE_TOO_LARGE'
+  | 'INVALID_FILE_TYPE'
+  | 'STORAGE_ERROR'
+  | 'CHECKSUM_MISMATCH'
+  | 'MATERIAL_NOT_FOUND'
+  | 'SOURCE_PACK_NOT_FOUND'
+  | 'EXTRACTION_FAILED';
 
 export class AppError extends Error {
   public readonly code: ErrorCode;
@@ -56,6 +63,34 @@ export function timeoutError(message: string, details?: unknown): AppError {
 
 export function approvalRequired(message: string, details?: unknown): AppError {
   return new AppError('APPROVAL_REQUIRED', message, 409, details);
+}
+
+export function fileTooLarge(message: string, details?: unknown): AppError {
+  return new AppError('FILE_TOO_LARGE', message, 413, details);
+}
+
+export function invalidFileType(message: string, details?: unknown): AppError {
+  return new AppError('INVALID_FILE_TYPE', message, 415, details);
+}
+
+export function storageError(message: string, details?: unknown): AppError {
+  return new AppError('STORAGE_ERROR', message, 500, details);
+}
+
+export function checksumMismatch(message: string, details?: unknown): AppError {
+  return new AppError('CHECKSUM_MISMATCH', message, 400, details);
+}
+
+export function materialNotFound(message = 'Material not found'): AppError {
+  return new AppError('MATERIAL_NOT_FOUND', message, 404);
+}
+
+export function sourcePackNotFound(message = 'Source pack not found'): AppError {
+  return new AppError('SOURCE_PACK_NOT_FOUND', message, 404);
+}
+
+export function extractionFailed(message: string, details?: unknown): AppError {
+  return new AppError('EXTRACTION_FAILED', message, 500, details);
 }
 
 export type ErrorEnvelope = {

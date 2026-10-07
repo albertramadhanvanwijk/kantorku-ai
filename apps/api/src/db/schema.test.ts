@@ -22,3 +22,10 @@ describe('Phase 2 schema', () => {
     expect(schema.agentEvents).toBeDefined();
   });
 });
+
+describe('Phase 3 schema', () => {
+  it('exports file_assets with checksum unique', () => expect(schema.fileAssets).toBeDefined());
+  it('exports creator_materials with type enum', () => expect(schema.creatorMaterials).toBeDefined());
+  it('exports source_packs', () => expect(schema.sourcePacks).toBeDefined());
+  it('exports source_pack_items with pack+material unique', () => expect(schema.sourcePackItems).toBeDefined());
+});

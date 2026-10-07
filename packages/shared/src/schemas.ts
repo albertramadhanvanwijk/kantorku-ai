@@ -29,6 +29,41 @@ export const loginSchema = z.object({
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 
+// Phase 3: Source Room
+export const materialTypeSchema = z.enum([
+  'chart',
+  'trade_screenshot',
+  'text_note',
+  'news',
+  'promo_asset',
+  'logo',
+  'document',
+]);
+export type MaterialType = z.infer<typeof materialTypeSchema>;
+
+export const createMaterialSchema = z.object({
+  type: materialTypeSchema.optional(),
+  title: z.string().min(1).max(500).optional(),
+  sourcePackId: z.string().uuid().optional(),
+});
+
+export const updateMaterialSchema = z.object({
+  title: z.string().min(1).max(500).optional(),
+  type: materialTypeSchema.optional(),
+  metadata: z.unknown().optional(),
+});
+
+export const createSourcePackSchema = z.object({
+  name: z.string().min(1).max(500),
+  description: z.string().max(5000).optional(),
+  materialIds: z.array(z.string().uuid()).optional(),
+});
+
+export const updateSourcePackSchema = z.object({
+  name: z.string().min(1).max(500).optional(),
+  description: z.string().max(5000).optional(),
+});
+
 // Health
 export const healthResponseSchema = z.object({
   status: z.literal('ok'),
