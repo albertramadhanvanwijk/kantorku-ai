@@ -31,6 +31,9 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import { workflowDefinitions } from './db/schema.js';
 import { eq } from 'drizzle-orm';
 import pg from 'pg';
+import { createStorageAdapter } from './modules/materials/storage/index.js';
+import { MaterialsService } from './modules/materials/materials.service.js';
+import { materialsRoutes } from './modules/materials/materials.routes.js';
 
 export interface BuildAppOptions {
   logger?: ReturnType<typeof createLogger> | false;
@@ -136,6 +139,36 @@ export async function buildApp(opts: BuildAppOptions = {}) {
       });
     }
 
+    // Content-Type parser not found — Fastify returns 415 Unsupported Media Type when no parser
+    // matches the request's Content-Type. For multipart this normally means @fastify/multipart
+    // was not registered on this instance. Map to a clear error but don't break inject tests
+    // that intentionally send multipart to routes that handle it.
+    const maybeStatus = (error as any).statusCode;
+    if (typeof maybeStatus === 'number' && maybeStatus === 415) {
+      const ct = (request.headers['content-type'] as string | undefined) ?? '';
+      // If this is a multipart request hitting a multipart route, the 415 is from missing parser
+      // Try to surface a more helpful message; the global handler will otherwise show SYSTEM_ERROR
+      if (ct.includes('multipart/form-data')) {
+        return reply.status(415).send({
+          success: false,
+          error: {
+            code: 'INVALID_FILE_TYPE',
+            message: (error as Error).message ?? 'Multipart parser not configured',
+          },
+        });
+      }
+    }
+    if (typeof maybeStatus === 'number' && maybeStatus >= 400 && maybeStatus < 600) {
+      const msg: string = (error as Error).message ?? 'Request failed';
+      return reply.status(maybeStatus).send({
+        success: false,
+        error: {
+          code: (error as any).code === 'FST_REQ_FILE_TOO_LARGE' ? 'FILE_TOO_LARGE' : 'SYSTEM_ERROR',
+          message: msg,
+        },
+      });
+    }
+
     request.log.error({ err: error }, 'Unhandled error');
     const statusCode = (error as any).statusCode ?? 500;
     return reply.status(statusCode).send({
@@ -192,6 +225,16 @@ export async function buildApp(opts: BuildAppOptions = {}) {
     internalLogger,
   );
 
+  // ── Phase 3: Materials ──
+  let storage: ReturnType<typeof createStorageAdapter> | null = null;
+  let materialsService: MaterialsService | null = null;
+  try {
+    storage = createStorageAdapter(config);
+    materialsService = new MaterialsService({ db, storage, logger: internalLogger, config });
+  } catch (err) {
+    internalLogger.warn({ err: err instanceof Error ? err.message : String(err) }, 'Materials storage init failed — routes will error until configured');
+  }
+
   // Decorate app with service instances for route access
   (app as unknown as Record<string, unknown>)['gateway'] = gateway;
   (app as unknown as Record<string, unknown>)['toolRegistry'] = toolRegistry;
@@ -201,6 +244,8 @@ export async function buildApp(opts: BuildAppOptions = {}) {
   (app as unknown as Record<string, unknown>)['executionStore'] = executionStore;
   (app as unknown as Record<string, unknown>)['workflowService'] = workflowService;
   (app as unknown as Record<string, unknown>)['workflowEngine'] = workflowEngine;
+  if (storage) (app as unknown as Record<string, unknown>)['storage'] = storage;
+  if (materialsService) (app as unknown as Record<string, unknown>)['materialsService'] = materialsService;
 
   // ── Seed default workflow definition if not exists (skip in test mode) ──
   if (!isTestMode) {
@@ -276,6 +321,8 @@ export async function buildApp(opts: BuildAppOptions = {}) {
       await api.register(approvalsRoutes);
       await api.register(runsRoutes);
       await api.register(toolsRoutes);
+      // Phase 3: materials
+      await api.register(materialsRoutes);
     },
     { prefix: '/api' },
   );
