@@ -21,12 +21,17 @@ export interface ClassificationServiceLike {
   verify(materialId: string, userId: string): Promise<Record<string, unknown>>;
 }
 
+export interface ExtractionServiceLike {
+  extractAuto(materialId: string, userId: string): Promise<void>;
+}
+
 export interface MaterialsServiceDeps {
   db: Db;
   storage: StorageAdapter;
   logger: Logger;
   config: Env;
   classificationService?: ClassificationServiceLike | null;
+  extractionService?: ExtractionServiceLike | null;
 }
 
 export interface UploadMeta {
@@ -106,6 +111,7 @@ export class MaterialsService {
   private readonly logger: Logger;
   private readonly config: Env;
   private classificationService: ClassificationServiceLike | null = null;
+  private extractionService: ExtractionServiceLike | null = null;
 
   constructor(deps: MaterialsServiceDeps) {
     this.db = deps.db;
@@ -113,10 +119,15 @@ export class MaterialsService {
     this.logger = deps.logger;
     this.config = deps.config;
     this.classificationService = deps.classificationService ?? null;
+    this.extractionService = deps.extractionService ?? null;
   }
 
   setClassificationService(svc: ClassificationServiceLike | null): void {
     this.classificationService = svc;
+  }
+
+  setExtractionService(svc: ExtractionServiceLike | null): void {
+    this.extractionService = svc;
   }
 
   async upload(file: Buffer, meta: UploadMeta): Promise<{ material: any; fileAsset: any }> {
@@ -273,6 +284,20 @@ export class MaterialsService {
         this.logger.warn(
           { err: err instanceof Error ? err.message : String(err), materialId: matId, userId },
           'materials.upload classify verify failed (background)',
+        );
+      });
+    }
+
+    // Fire-and-forget auto extraction for chart type — best-effort per Task 6
+    // Only 'chart' triggers auto extract synchronously with the upload background pipeline;
+    // other types are extracted on explicit POST /extract. Keep chart as the required
+    // auto-extract case per plan review (auto extract on chart upload).
+    if (this.extractionService && String(materialType) === 'chart') {
+      const matId2: string = String((material as Record<string, unknown>)['id']);
+      void this.extractionService.extractAuto(matId2, String(userId)).catch((err: unknown) => {
+        this.logger.warn(
+          { err: err instanceof Error ? err.message : String(err), materialId: matId2, userId },
+          'materials.upload auto extraction failed (background)',
         );
       });
     }

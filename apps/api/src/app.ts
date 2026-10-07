@@ -35,6 +35,7 @@ import { createStorageAdapter } from './modules/materials/storage/index.js';
 import { MaterialsService } from './modules/materials/materials.service.js';
 import { ClassificationService } from './modules/materials/classification.service.js';
 import { SourcePacksService } from './modules/materials/sourcePacks.service.js';
+import { ExtractionService } from './modules/materials/extraction.service.js';
 import { materialsRoutes } from './modules/materials/materials.routes.js';
 import { sourcePacksRoutes } from './modules/materials/sourcePacks.routes.js';
 
@@ -233,10 +234,12 @@ export async function buildApp(opts: BuildAppOptions = {}) {
   let materialsService: MaterialsService | null = null;
   let classificationService: ClassificationService | null = null;
   let sourcePacksService: SourcePacksService | null = null;
+  let extractionService: ExtractionService | null = null;
   try {
     storage = createStorageAdapter(config);
     classificationService = new ClassificationService({ db, agentService, storage, logger: internalLogger });
-    materialsService = new MaterialsService({ db, storage, logger: internalLogger, config, classificationService });
+    extractionService = new ExtractionService({ db, agentService, storage, logger: internalLogger });
+    materialsService = new MaterialsService({ db, storage, logger: internalLogger, config, classificationService, extractionService });
     sourcePacksService = new SourcePacksService({ db, logger: internalLogger });
   } catch (err) {
     internalLogger.warn({ err: err instanceof Error ? err.message : String(err) }, 'Materials storage init failed — routes will error until configured');
@@ -255,6 +258,7 @@ export async function buildApp(opts: BuildAppOptions = {}) {
   if (materialsService) (app as unknown as Record<string, unknown>)['materialsService'] = materialsService;
   if (classificationService) (app as unknown as Record<string, unknown>)['classificationService'] = classificationService;
   if (sourcePacksService) (app as unknown as Record<string, unknown>)['sourcePacksService'] = sourcePacksService;
+  if (extractionService) (app as unknown as Record<string, unknown>)['extractionService'] = extractionService;
 
   // ── Seed default workflow definition if not exists (skip in test mode) ──
   if (!isTestMode) {

@@ -334,4 +334,59 @@ export async function materialsRoutes(app: FastifyInstance): Promise<void> {
     const out: Record<string, unknown> = signed ? { ...updated, fileAsset: signed } : { ...updated };
     return reply.send({ success: true, data: out });
   });
+
+  // POST /api/materials/:id/extract — explicit extraction (throws extractionFailed on failure)
+  // Body: { type?: 'chart'|'text'|'trade' } — if omitted, triggers extractAuto based on material.type
+  app.post('/materials/:id/extract', { preHandler: [app.authenticate] }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const userId = (request.user as { sub: string }).sub;
+    const { id } = request.params as { id: string };
+    if (!id) throw shared.validationError('Missing material id');
+
+    const bodySchema = z.object({
+      type: z.enum(['chart', 'text', 'trade']).optional(),
+    });
+
+    const parsedBody = bodySchema.safeParse(request.body ?? {});
+    if (!parsedBody.success) {
+      throw shared.validationError('Invalid body', { issues: parsedBody.error.issues });
+    }
+
+    const extractionSvc = (app as unknown as Record<string, unknown>)['extractionService'] as
+      | import('./extraction.service.js').ExtractionService
+      | undefined;
+
+    if (!extractionSvc) {
+      throw new shared.AppError('SYSTEM_ERROR', 'Extraction service not configured', 500);
+    }
+
+    let result: Record<string, unknown>;
+    if (!parsedBody.data.type) {
+      // Auto mode — extract based on material.type; if no-op type, just return current material
+      const svc = getMaterialsService(app);
+      // Check whether auto would be no-op by inspecting type up front so we can return immediately
+      // For auto we delegate to extractAuto which is fire-and-forget style; here we want the
+      // persisted result. Also call extractAuto via the service's public method then re-fetch.
+      // Simpler: load type, if mapped call extract, else return material.
+      const current = await svc.getById(id, userId);
+      const t = String((current as Record<string, unknown>)['type'] ?? '');
+      const typeMap: Record<string, 'chart' | 'text' | 'trade' | null> = {
+        chart: 'chart',
+        trade_screenshot: 'trade',
+        document: 'text',
+      };
+      const mapped = typeMap[t] ?? null;
+      if (!mapped) {
+        return reply.send({ success: true, data: current });
+      }
+      result = await extractionSvc.extract(id, userId, mapped);
+    } else {
+      result = await extractionSvc.extract(id, userId, parsedBody.data.type);
+    }
+
+    const signed = (result as Record<string, unknown>)['fileAsset']
+      ? await getSignedFileAsset(app, (result as Record<string, unknown>)['fileAsset'])
+      : undefined;
+    const out: Record<string, unknown> = signed ? { ...result, fileAsset: signed } : { ...result };
+    return reply.send({ success: true, data: out });
+  });
 }

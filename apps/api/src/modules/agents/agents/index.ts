@@ -2,6 +2,9 @@ export * from './research.agent.js';
 export * from './contentStrategist.agent.js';
 export * from './copywriter.agent.js';
 export * from './materialClassifier.agent.js';
+export * from './chartExtractor.agent.js';
+export * from './textExtractor.agent.js';
+export * from './tradeParser.agent.js';
 
 import type { AgentRegistry } from '../registry.js';
 import type { AgentService } from '../agent.service.js';
@@ -12,12 +15,18 @@ import { researchAgentDefinition, ResearchAgent } from './research.agent.js';
 import { strategistAgentDefinition, ContentStrategistAgent } from './contentStrategist.agent.js';
 import { copywriterAgentDefinition, CopywriterAgent } from './copywriter.agent.js';
 import { materialClassifierDefinition, MaterialClassifierAgent } from './materialClassifier.agent.js';
+import { chartExtractorDefinition, ChartExtractorAgent } from './chartExtractor.agent.js';
+import { textExtractorDefinition, TextExtractorAgent } from './textExtractor.agent.js';
+import { tradeParserDefinition, TradeParserAgent } from './tradeParser.agent.js';
 
 export const ALL_AGENT_DEFINITIONS = [
   researchAgentDefinition,
   strategistAgentDefinition,
   copywriterAgentDefinition,
   materialClassifierDefinition,
+  chartExtractorDefinition,
+  textExtractorDefinition,
+  tradeParserDefinition,
 ] as const;
 
 /**
@@ -43,6 +52,9 @@ export function registerConcreteAgents(
   agentService.registerFactory(strategistAgentDefinition.id, (gw, tr, lg) => new ContentStrategistAgent(gw, tr, lg) as unknown as import('../baseAgent.js').BaseAgent<unknown, unknown>);
   agentService.registerFactory(copywriterAgentDefinition.id, (gw, tr, lg) => new CopywriterAgent(gw, tr, lg) as unknown as import('../baseAgent.js').BaseAgent<unknown, unknown>);
   agentService.registerFactory(materialClassifierDefinition.id, (gw, tr, lg) => new MaterialClassifierAgent(gw, tr, lg) as unknown as import('../baseAgent.js').BaseAgent<unknown, unknown>);
+  agentService.registerFactory(chartExtractorDefinition.id, (gw, tr, lg) => new ChartExtractorAgent(gw, tr, lg) as unknown as import('../baseAgent.js').BaseAgent<unknown, unknown>);
+  agentService.registerFactory(textExtractorDefinition.id, (gw, tr, lg) => new TextExtractorAgent(gw, tr, lg) as unknown as import('../baseAgent.js').BaseAgent<unknown, unknown>);
+  agentService.registerFactory(tradeParserDefinition.id, (gw, tr, lg) => new TradeParserAgent(gw, tr, lg) as unknown as import('../baseAgent.js').BaseAgent<unknown, unknown>);
 
   // Keep parameters referenced to satisfy strict TS when gateway/toolRegistry/logger are
   // supplied by the caller but factories close over the service's own instances.
