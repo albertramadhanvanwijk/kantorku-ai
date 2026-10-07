@@ -36,8 +36,10 @@ import { MaterialsService } from './modules/materials/materials.service.js';
 import { ClassificationService } from './modules/materials/classification.service.js';
 import { SourcePacksService } from './modules/materials/sourcePacks.service.js';
 import { ExtractionService } from './modules/materials/extraction.service.js';
+import { ContentProjectsService } from './modules/content/projects.service.js';
 import { materialsRoutes } from './modules/materials/materials.routes.js';
 import { sourcePacksRoutes } from './modules/materials/sourcePacks.routes.js';
+import { projectsRoutes } from './modules/content/projects.routes.js';
 
 export interface BuildAppOptions {
   logger?: ReturnType<typeof createLogger> | false;
@@ -235,12 +237,14 @@ export async function buildApp(opts: BuildAppOptions = {}) {
   let classificationService: ClassificationService | null = null;
   let sourcePacksService: SourcePacksService | null = null;
   let extractionService: ExtractionService | null = null;
+  let contentProjectsService: ContentProjectsService | null = null;
   try {
     storage = createStorageAdapter(config);
     classificationService = new ClassificationService({ db, agentService, storage, logger: internalLogger });
     extractionService = new ExtractionService({ db, agentService, storage, logger: internalLogger });
     materialsService = new MaterialsService({ db, storage, logger: internalLogger, config, classificationService, extractionService });
     sourcePacksService = new SourcePacksService({ db, logger: internalLogger });
+    contentProjectsService = new ContentProjectsService({ db, workflowEngine, logger: internalLogger });
   } catch (err) {
     internalLogger.warn({ err: err instanceof Error ? err.message : String(err) }, 'Materials storage init failed — routes will error until configured');
   }
@@ -259,6 +263,7 @@ export async function buildApp(opts: BuildAppOptions = {}) {
   if (classificationService) (app as unknown as Record<string, unknown>)['classificationService'] = classificationService;
   if (sourcePacksService) (app as unknown as Record<string, unknown>)['sourcePacksService'] = sourcePacksService;
   if (extractionService) (app as unknown as Record<string, unknown>)['extractionService'] = extractionService;
+  if (contentProjectsService) (app as unknown as Record<string, unknown>)['contentProjectsService'] = contentProjectsService;
 
   // ── Seed default workflow definition if not exists (skip in test mode) ──
   if (!isTestMode) {
@@ -334,9 +339,10 @@ export async function buildApp(opts: BuildAppOptions = {}) {
       await api.register(approvalsRoutes);
       await api.register(runsRoutes);
       await api.register(toolsRoutes);
-      // Phase 3: materials + source packs
+      // Phase 3: materials + source packs + content projects
       await api.register(materialsRoutes);
       await api.register(sourcePacksRoutes);
+      await api.register(projectsRoutes);
     },
     { prefix: '/api' },
   );

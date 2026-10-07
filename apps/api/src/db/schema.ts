@@ -307,3 +307,29 @@ export const sourcePackItems = pgTable(
     index('source_pack_items_material_idx').on(t.materialId),
   ],
 );
+
+// ── Phase 3G: Content Projects (Transform vs Analyze) ───────────────────────
+// Spec §10 — one pack may produce multiple projects, mode chosen at project creation.
+// Provisional: workflowExecutionId links to workflow_executions when content-production flow is wired.
+export const contentProjects = pgTable(
+  'content_projects',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    sourcePackId: uuid('source_pack_id')
+      .notNull()
+      .references(() => sourcePacks.id),
+    mode: varchar('mode', { length: 20 }).notNull(), // 'transform' | 'analyze'
+    brief: text('brief'),
+    status: varchar('status', { length: 50 }).notNull().default('pending'),
+    workflowExecutionId: uuid('workflow_execution_id').references(() => workflowExecutions.id),
+    createdBy: uuid('created_by').references(() => users.id),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('content_projects_source_pack_idx').on(t.sourcePackId),
+    index('content_projects_created_by_idx').on(t.createdBy),
+    index('content_projects_mode_idx').on(t.mode),
+    index('content_projects_status_idx').on(t.status),
+  ],
+);
