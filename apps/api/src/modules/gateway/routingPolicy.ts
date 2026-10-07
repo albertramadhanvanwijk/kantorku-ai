@@ -93,14 +93,14 @@ const MODEL_CATALOG: Record<string, ModelSpec> = {
     costPer1kOutput: COST_LOW,
     capabilities: ['structured-output'],
   },
-  // classification: low-cost only
+  // classification: low-cost, vision-capable for image classification (Task 4 confirm)
   'low-classification-v1': {
     id: 'low-classification-v1',
     name: 'Low Classification v1',
     maxTokens: 2048,
     costPer1kInput: COST_LOW,
     costPer1kOutput: COST_LOW,
-    capabilities: ['structured-output', 'function-calling'],
+    capabilities: ['structured-output', 'function-calling', 'vision'],
   },
 };
 

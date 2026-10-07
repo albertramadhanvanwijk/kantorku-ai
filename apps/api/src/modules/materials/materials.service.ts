@@ -16,11 +16,17 @@ import type { Logger } from '../../logger.js';
 // Re-export for routes convenience
 export type Db = any;
 
+// Optional classification collaborator; injected when available (Task 4+)
+export interface ClassificationServiceLike {
+  verify(materialId: string, userId: string): Promise<Record<string, unknown>>;
+}
+
 export interface MaterialsServiceDeps {
   db: Db;
   storage: StorageAdapter;
   logger: Logger;
   config: Env;
+  classificationService?: ClassificationServiceLike | null;
 }
 
 export interface UploadMeta {
@@ -99,12 +105,18 @@ export class MaterialsService {
   private readonly storage: StorageAdapter;
   private readonly logger: Logger;
   private readonly config: Env;
+  private classificationService: ClassificationServiceLike | null = null;
 
   constructor(deps: MaterialsServiceDeps) {
     this.db = deps.db;
     this.storage = deps.storage;
     this.logger = deps.logger;
     this.config = deps.config;
+    this.classificationService = deps.classificationService ?? null;
+  }
+
+  setClassificationService(svc: ClassificationServiceLike | null): void {
+    this.classificationService = svc;
   }
 
   async upload(file: Buffer, meta: UploadMeta): Promise<{ material: any; fileAsset: any }> {
@@ -253,6 +265,17 @@ export class MaterialsService {
     if (!material) throw storageError('Failed to create material');
 
     this.logger.debug({ materialId: material.id, fileAssetId: fileAsset.id, userId, checksum }, 'materials.upload created');
+
+    // Fire-and-forget AI verify — best-effort, never throws to break upload
+    if (this.classificationService) {
+      const matId: string = String((material as Record<string, unknown>)['id']);
+      void this.classificationService.verify(matId, String(userId)).catch((err: unknown) => {
+        this.logger.warn(
+          { err: err instanceof Error ? err.message : String(err), materialId: matId, userId },
+          'materials.upload classify verify failed (background)',
+        );
+      });
+    }
 
     return { material, fileAsset };
   }

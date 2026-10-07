@@ -4,6 +4,7 @@ import * as shared from '@kantorku/shared';
 import { materialTypeSchema } from '@kantorku/shared';
 import type { MaterialsService } from './materials.service.js';
 import type { StorageAdapter } from './storage/adapter.js';
+import type { ClassificationService } from './classification.service.js';
 
 const paginationQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1).optional(),
@@ -26,6 +27,10 @@ function getMaterialsService(app: FastifyInstance): MaterialsService {
 
 function getStorage(app: FastifyInstance): StorageAdapter | undefined {
   return (app as unknown as Record<string, unknown>)['storage'] as StorageAdapter | undefined;
+}
+
+function getClassificationService(app: FastifyInstance): ClassificationService | undefined {
+  return (app as unknown as Record<string, unknown>)['classificationService'] as ClassificationService | undefined;
 }
 
 async function getSignedFileAsset(app: FastifyInstance, fileAsset: any): Promise<any> {
@@ -307,5 +312,26 @@ export async function materialsRoutes(app: FastifyInstance): Promise<void> {
     if (!id) throw shared.validationError('Missing material id');
     await svc.delete(id, userId);
     return reply.status(200).send({ success: true, data: { id } });
+  });
+
+  // POST /api/materials/:id/classify — manual re-verify (best-effort classify)
+  app.post('/materials/:id/classify', { preHandler: [app.authenticate] }, async (request: FastifyRequest, reply: FastifyReply) => {
+    const userId = (request.user as { sub: string }).sub;
+    const { id } = request.params as { id: string };
+    if (!id) throw shared.validationError('Missing material id');
+    const clsSvc = getClassificationService(app);
+    if (!clsSvc) {
+      // No classification service configured — return current material without aiVerified
+      const svc = getMaterialsService(app);
+      const material = await svc.getById(id, userId);
+      return reply.send({ success: true, data: material });
+    }
+    const updated = await clsSvc.verify(id, userId);
+    // Return with signed fileAsset if present
+    const signed = (updated as Record<string, unknown>)['fileAsset']
+      ? await getSignedFileAsset(app, (updated as Record<string, unknown>)['fileAsset'])
+      : undefined;
+    const out: Record<string, unknown> = signed ? { ...updated, fileAsset: signed } : { ...updated };
+    return reply.send({ success: true, data: out });
   });
 }

@@ -33,6 +33,7 @@ import { eq } from 'drizzle-orm';
 import pg from 'pg';
 import { createStorageAdapter } from './modules/materials/storage/index.js';
 import { MaterialsService } from './modules/materials/materials.service.js';
+import { ClassificationService } from './modules/materials/classification.service.js';
 import { materialsRoutes } from './modules/materials/materials.routes.js';
 
 export interface BuildAppOptions {
@@ -228,9 +229,11 @@ export async function buildApp(opts: BuildAppOptions = {}) {
   // ── Phase 3: Materials ──
   let storage: ReturnType<typeof createStorageAdapter> | null = null;
   let materialsService: MaterialsService | null = null;
+  let classificationService: ClassificationService | null = null;
   try {
     storage = createStorageAdapter(config);
-    materialsService = new MaterialsService({ db, storage, logger: internalLogger, config });
+    classificationService = new ClassificationService({ db, agentService, storage, logger: internalLogger });
+    materialsService = new MaterialsService({ db, storage, logger: internalLogger, config, classificationService });
   } catch (err) {
     internalLogger.warn({ err: err instanceof Error ? err.message : String(err) }, 'Materials storage init failed — routes will error until configured');
   }
@@ -246,6 +249,7 @@ export async function buildApp(opts: BuildAppOptions = {}) {
   (app as unknown as Record<string, unknown>)['workflowEngine'] = workflowEngine;
   if (storage) (app as unknown as Record<string, unknown>)['storage'] = storage;
   if (materialsService) (app as unknown as Record<string, unknown>)['materialsService'] = materialsService;
+  if (classificationService) (app as unknown as Record<string, unknown>)['classificationService'] = classificationService;
 
   // ── Seed default workflow definition if not exists (skip in test mode) ──
   if (!isTestMode) {

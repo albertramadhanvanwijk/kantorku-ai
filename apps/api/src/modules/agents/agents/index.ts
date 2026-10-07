@@ -1,6 +1,7 @@
 export * from './research.agent.js';
 export * from './contentStrategist.agent.js';
 export * from './copywriter.agent.js';
+export * from './materialClassifier.agent.js';
 
 import type { AgentRegistry } from '../registry.js';
 import type { AgentService } from '../agent.service.js';
@@ -10,11 +11,13 @@ import type { Logger } from '../../../logger.js';
 import { researchAgentDefinition, ResearchAgent } from './research.agent.js';
 import { strategistAgentDefinition, ContentStrategistAgent } from './contentStrategist.agent.js';
 import { copywriterAgentDefinition, CopywriterAgent } from './copywriter.agent.js';
+import { materialClassifierDefinition, MaterialClassifierAgent } from './materialClassifier.agent.js';
 
 export const ALL_AGENT_DEFINITIONS = [
   researchAgentDefinition,
   strategistAgentDefinition,
   copywriterAgentDefinition,
+  materialClassifierDefinition,
 ] as const;
 
 /**
@@ -39,6 +42,7 @@ export function registerConcreteAgents(
   agentService.registerFactory(researchAgentDefinition.id, (gw, tr, lg) => new ResearchAgent(gw, tr, lg) as unknown as import('../baseAgent.js').BaseAgent<unknown, unknown>);
   agentService.registerFactory(strategistAgentDefinition.id, (gw, tr, lg) => new ContentStrategistAgent(gw, tr, lg) as unknown as import('../baseAgent.js').BaseAgent<unknown, unknown>);
   agentService.registerFactory(copywriterAgentDefinition.id, (gw, tr, lg) => new CopywriterAgent(gw, tr, lg) as unknown as import('../baseAgent.js').BaseAgent<unknown, unknown>);
+  agentService.registerFactory(materialClassifierDefinition.id, (gw, tr, lg) => new MaterialClassifierAgent(gw, tr, lg) as unknown as import('../baseAgent.js').BaseAgent<unknown, unknown>);
 
   // Keep parameters referenced to satisfy strict TS when gateway/toolRegistry/logger are
   // supplied by the caller but factories close over the service's own instances.
